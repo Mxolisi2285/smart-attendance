@@ -1,0 +1,518 @@
+<!-- File: src/main/resources/templates/dashboard.html -->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Smart Attendance - Teacher Dashboard</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #333;
+        }
+        .header {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+        }
+        .logout {
+            background-color: #dc3545;
+            color: white;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .section {
+            background: white;
+            margin-bottom: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #007bff;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+
+        /* Camera Section */
+        .camera-container {
+            text-align: center;
+        }
+        #video {
+            width: 100%;
+            max-width: 500px;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            background: #000;
+        }
+        .capture-controls {
+            margin-top: 15px;
+        }
+        .capture-controls select, .capture-controls button {
+            margin: 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+        }
+        .capture-controls select {
+            width: 200px;
+        }
+
+        /* Recording Status */
+        #recordingStatus {
+            display: none;
+            margin-top: 12px;
+            font-weight: bold;
+            color: #d32f2f;
+            font-size: 1.1em;
+        }
+        #recordingDot {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            background: #d32f2f;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Forms */
+        form {
+            display: none;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f1f8ff;
+            border-radius: 6px;
+        }
+        form.active { display: block; }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button, .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover, .btn:hover {
+            background: #0056b3;
+        }
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #007bff;
+            color: #007bff;
+        }
+        .btn-outline:hover {
+            background: #e9f0ff;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #007bff;
+            color: white;
+        }
+        tr:hover { background: #f5f9ff; }
+
+#message {
+    padding: 12px 20px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    opacity: 1;
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    margin: 10px auto;        /* center horizontally */
+    text-align: center;        /* center text */
+    display: block;            /* ensure it behaves like a block element */
+    max-width: 400px;          /* optional: limit width */
+}
+
+.msg-success { background: #d4edda; color: #155724; }
+.msg-error   { background: #f8d7da; color: #721c24; }
+.msg-info    { background: #d1ecf1; color: #0c5460; }
+
+        @media (max-width: 768px) {
+            .header, .capture-controls { flex-direction: column; align-items: center; }
+            .capture-controls select { width: 100%; max-width: 300px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header" style="position: relative; padding: 15px 0;">
+    <!-- Logout on the right -->
+    <a href="/logout" class="logout" style="
+        position: absolute;
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: #dc3545;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+    ">🚪 Logout</a>
+
+    <!-- Title centered -->
+    <h1 style="
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        margin: 0;
+        color: #007bff;
+        text-align: center;
+    ">
+        Smart Attendance Register
+    </h1>
+</div>
+
+<!-- ===================== CAMERA ATTENDANCE ===================== -->
+<div class="section">
+    <h2 style="display: block; width: 100%; text-align: center;">📸 Mark Attendance via Camera</h2>
+    <div th:if="${message}" id="message"
+         th:class="${#strings.startsWith(message, '✅') ? 'msg-success' :
+                    #strings.startsWith(message, '❌') ? 'msg-error' :
+                    #strings.startsWith(message, 'ℹ️') ? 'msg-info' : 'msg-error'}"
+         th:text="${message}">
+    </div>
+    <div class="camera-container">
+        <video id="video" autoplay playsinline muted></video>
+
+        <div id="recordingStatus">
+            <span id="recordingDot"></span>
+            <span>Recording... <span id="recordingTime">00:00</span></span>
+        </div>
+
+        <div class="capture-controls">
+            <select name="classId" id="videoClassId" required>
+                <option value="">-- Select Class --</option>
+                <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.name}"></option>
+            </select>
+            <button type="button" id="startBtn" onclick="startRecording()">Mark Register</button>
+            <button type="button" id="stopBtn" onclick="stopRecording()" disabled>Stop</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== QUICK ACTIONS ===================== -->
+<div class="section" style="display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 20px 0;">
+    <h2>⚡ Quick Actions</h2>
+    <button class="btn btn-outline" onclick="toggleForm('studentForm')">👤 Add Student</button>
+    <button class="btn btn-outline" onclick="toggleForm('classForm')">➕ Add Class</button>
+</div>
+
+<!-- ===================== ADD STUDENT FORM ===================== -->
+<div class="section">
+    <h2>Add New Student</h2>
+    <form id="studentForm" th:action="@{/dashboard/addStudent}" method="post" enctype="multipart/form-data">
+        <label>Student Name:</label>
+        <input type="text" name="name" required>
+        <label>Parent Email:</label>
+        <input type="email" name="parentEmail" required>
+        <label>Class:</label>
+        <select name="classId" required>
+            <option value="" disabled selected>Select class</option>
+            <option th:each="c : ${classes}" th:value="${c.id}" th:text="${c.name}"></option>
+        </select>
+        <label>Upload Face Image:</label>
+        <input type="file" name="faceFile" accept="image/*" required>
+        <button type="submit">Add Student</button>
+    </form>
+</div>
+
+<!-- ===================== ADD CLASS FORM ===================== -->
+<div class="section">
+    <h2>Add New Class</h2>
+    <form id="classForm" th:action="@{/dashboard/addClass}" method="post">
+        <label>Class Name:</label>
+        <input type="text" name="name" required>
+        <button type="submit">Add Class</button>
+    </form>
+</div>
+
+<!-- ===================== ATTENDANCE REPORT ===================== -->
+<div class="section">
+    <h2>📊 Attendance Report</h2>
+
+    <!-- Download CSV Button -->
+    <div style="text-align: right; margin-bottom: 10px;">
+        <a href="/dashboard/downloadAttendanceCSV"
+           style="background-color: #28a745; color: white; padding: 10px 15px;
+                  border-radius: 5px; text-decoration: none; font-weight: bold;">
+            ⬇️ Download CSV
+        </a>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Attendance %</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="student : ${students}">
+            <td th:text="${student.name}"></td>
+            <td th:text="${student.schoolClass?.name ?: '—'}"></td>
+            <td>
+                <span th:with="total=${#lists.size(student.attendanceRecords)},
+                               present=${#lists.size(student.attendanceRecords.?[status == 'PRESENT'])},
+                               pct=${total > 0 ? (100.0 * present / total) : 0}"
+                      th:text="${#numbers.formatDecimal(pct, 1, 2)} + '%'">
+                </span>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ===================== RECENT ATTENDANCE ===================== -->
+<div class="section">
+    <h2>📅 Recent Attendance Records</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Student</th>
+            <th>Class</th>
+            <th>Date</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="record : ${attendanceRecords}">
+            <td th:text="${record.student.name}"></td>
+            <td th:text="${record.schoolClass.name}"></td>
+            <td th:text="${#temporals.format(record.date, 'yyyy-MM-dd')}"></td>
+            <td th:text="${record.status}"></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ===================== ABSENT TODAY ===================== -->
+<div class="section">
+    <h2>🔴 Absent Today (<span th:text="${#temporals.format(today, 'yyyy-MM-dd')}"></span>)</h2>
+    <table>
+        <thead>
+        <tr>
+            <th>Student Name</th>
+            <th>Class</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:if="${absentToday.empty}">
+            <td colspan="2" style="text-align: center; color: #28a745; font-weight: bold;">
+                ✅ All students are present today!
+            </td>
+        </tr>
+        <tr th:each="student : ${absentToday}">
+            <td th:text="${student.name}"></td>
+            <td th:text="${student.schoolClass?.name ?: '—'}"></td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ===================== JAVASCRIPT ===================== -->
+<script>
+    function toggleForm(formId) {
+        const form = document.getElementById(formId);
+        form.classList.toggle('active');
+    }
+
+    const video = document.getElementById('video');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const recordingStatus = document.getElementById('recordingStatus');
+    const recordingTimeEl = document.getElementById('recordingTime');
+
+    let mediaRecorder;
+    let recordedBlobs = [];
+    let isRecording = false;
+    let recordingTimer;
+
+    navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        .then(stream => { video.srcObject = stream; })
+        .catch(err => {
+            alert("⚠️ Camera access denied or not available.");
+            console.error("Camera error:", err);
+        });
+
+    function formatTime(seconds) {
+        const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const secs = (seconds % 60).toString().padStart(2, '0');
+        return `${mins}:${secs}`;
+    }
+
+    function startRecording() {
+        const classId = document.getElementById('videoClassId').value;
+        if (!classId) {
+            alert("Please select a class first.");
+            return;
+        }
+
+        const stream = video.srcObject;
+        if (!stream) {
+            alert("Camera not ready. Please refresh.");
+            return;
+        }
+
+        recordedBlobs = [];
+        const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+            ? 'video/webm;codecs=vp9'
+            : MediaRecorder.isTypeSupported('video/webm')
+                ? 'video/webm'
+                : '';
+
+        mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+        mediaRecorder.ondataavailable = e => {
+            if (e.data && e.data.size > 0) {
+                recordedBlobs.push(e.data);
+            }
+        };
+
+        mediaRecorder.start(1000);
+
+        isRecording = true;
+        const startTime = Date.now();
+        recordingStatus.style.display = 'block';
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+
+        recordingTimer = setInterval(() => {
+            if (isRecording) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                recordingTimeEl.textContent = formatTime(elapsed);
+            }
+        }, 1000);
+    }
+
+    async function stopRecording() {
+        if (!isRecording || !mediaRecorder) return;
+
+        isRecording = false;
+        mediaRecorder.stop();
+        clearInterval(recordingTimer);
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        recordingStatus.style.display = 'none';
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+
+        const totalSize = recordedBlobs.reduce((sum, blob) => sum + blob.size, 0);
+        if (totalSize < 1024) {
+            alert("❌ Recording too short or empty. Please record for at least 3 seconds.");
+            return;
+        }
+
+        const blob = new Blob(recordedBlobs, { type: 'video/webm' });
+        const file = new File([blob], 'attendance.webm', { type: 'video/webm' });
+
+        const formData = new FormData();
+        formData.append('video', file);
+        formData.append('classId', document.getElementById('videoClassId').value);
+
+        const msgDiv = document.getElementById('message');
+        if (msgDiv) {
+            msgDiv.className = 'msg-info';
+            msgDiv.textContent = '📤 Uploading video...';
+            msgDiv.style.display = 'block';
+        }
+
+        try {
+            const response = await fetch('/attendance/markVideo', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.redirected) {
+                window.location.href = response.url;
+            } else {
+                const errorMsg = await response.text();
+                if (msgDiv) {
+                    msgDiv.className = 'msg-error';
+                    msgDiv.textContent = '❌ Upload failed: ' + errorMsg;
+                }
+            }
+        } catch (error) {
+            console.error('Network error:', error);
+            if (msgDiv) {
+                msgDiv.className = 'msg-error';
+                msgDiv.textContent = '❌ Network error: ' + error.message;
+            }
+        }
+    }
+
+    // Auto-hide success messages after 3 seconds
+    window.addEventListener("DOMContentLoaded", () => {
+        const msgDiv = document.getElementById("message");
+        if (msgDiv && msgDiv.classList.contains("msg-success")) {
+            setTimeout(() => {
+                msgDiv.style.opacity = "0";
+                setTimeout(() => msgDiv.style.display = "none", 600);
+            }, 3000);
+        }
+    });
+</script>
+
+<script>
+    const msgDiv = document.getElementById('message');
+
+if (msgDiv) {
+    // Show the message
+    msgDiv.style.display = 'block';
+    msgDiv.style.opacity = '1';
+
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+        msgDiv.style.opacity = '0';
+        // Optional: hide completely after fade-out
+        setTimeout(() => { msgDiv.style.display = 'none'; }, 600);
+    }, 3000);
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Report</title>
+</head>
+<body>
+<h1>Attendance Report</h1>
+<a th:href="@{/dashboard}">Back to Dashboard</a>
+<table border="1">
+    <tr><th>Student</th><th>Attendance Percentage</th></tr>
+    <tr th:each="student : ${students}">
+        <td th:text="${student.name}"></td>
+        <td th:text="${#numbers.formatDecimal(100.0 * student.attendanceRecords.?[status=='PRESENT'].size() / student.attendanceRecords.size(), 0, 'POINT', 2)}"></td>
+    </tr>
+</table>
+</body>
+</html>

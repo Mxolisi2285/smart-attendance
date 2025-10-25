@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Student</title>
+</head>
+<body>
+<h1>Add Student</h1>
+<form th:action="@{/students/add}" th:object="${student}" method="post">
+    <input type="text" th:field="*{fullName}" placeholder="Full Name" required><br>
+    <input type="email" th:field="*{email}" placeholder="Student Email" required><br>
+    <input type="text" th:field="*{grade}" placeholder="Grade" required><br>
+    <input type="email" th:field="*{parentEmail}" placeholder="Parent Email" required><br>
+    <input type="text" th:field="*{faceImagePath}" placeholder="Face Image Path"><br>
+    <button type="submit">Add Student</button>
+</form>
+<a href="/students">Back to list</a>
+</body>
+</html>
